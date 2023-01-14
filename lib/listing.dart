@@ -17,6 +17,11 @@ class Listing extends StatefulWidget {
 class _Listing extends State<Listing> {
   List<Contact>? _contacts;
 
+  Future<bool> _onBackButtonPressed() async {
+    await context.read<AuthManager>().logOut();
+    return true;
+  }
+
   /// Fetch all entries when pulled top to bottom
   Future<void> swipeUpdate() async {
     List<Contact> update = await WebManager()
@@ -53,35 +58,38 @@ class _Listing extends State<Listing> {
 
   @override
   Widget build(BuildContext context) {
-    return (FutureBuilder(
-        future: WebManager()
-            .getAll(context.read<AuthManager>().getSessionIDAsString()),
-        builder: (ctx, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  return swipeUpdate();
-                },
-                child: ListView(children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 3, 0, 3),
-                    child: Text(
-                        "Last fetch: ${DateTime.now().toLocal().toString()}",
-                        style: const TextStyle(
-                            fontSize: 10, fontStyle: FontStyle.italic)),
-                  ),
-                  const Divider(),
-                  ...snapshot.data!
-                      .map((e) => ContactWidget(
-                          e, updateSingleContact, deleteSingleContact))
-                      .toList(),
-                ]),
-              ),
-            );
-          }
-          return const Spinner();
-        }));
+    return WillPopScope(
+      onWillPop: () => _onBackButtonPressed(),
+      child: (FutureBuilder(
+          future: WebManager()
+              .getAll(context.read<AuthManager>().getSessionIDAsString()),
+          builder: (ctx, snapshot) {
+            if (snapshot.connectionState == ConnectionState.done) {
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    return swipeUpdate();
+                  },
+                  child: ListView(children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 3, 0, 3),
+                      child: Text(
+                          "Last fetch: ${DateTime.now().toLocal().toString()}",
+                          style: const TextStyle(
+                              fontSize: 10, fontStyle: FontStyle.italic)),
+                    ),
+                    const Divider(),
+                    ...snapshot.data!
+                        .map((e) => ContactWidget(
+                            e, updateSingleContact, deleteSingleContact))
+                        .toList(),
+                  ]),
+                ),
+              );
+            }
+            return const Spinner();
+          })),
+    );
   }
 }
